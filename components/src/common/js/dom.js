@@ -8,7 +8,7 @@ export function addClass(el, className) {
 }
 
 export function removeClass(el, className) {
-  if (hasClass(el, className)) {
+  if (!hasClass(el, className)) {
     return
   }
   let newClass = el.className.split(' ')
@@ -21,7 +21,7 @@ export function removeClass(el, className) {
 }
 
 export function hasClass(el, className) {
-  let reg = new RegExp(`(^|\\s)${className}('\\s|$')`)
+  let reg = new RegExp(`(^|\\s)${className}(\\s|$)`)
   return reg.test(el.className)
 }
 
