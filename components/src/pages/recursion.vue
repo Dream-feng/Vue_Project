@@ -1,23 +1,23 @@
 <template>
   <div>
     <div v-if="questionList"
-         class="reduce-container"
-         ref="reduceCont">
-      <reduce v-for="(item, index) in questionList"
+         class="recursion-container"
+         ref="recursionCont">
+      <recursion v-for="(item, index) in questionList"
               :key="index"
               :number="`${index + 1}`"
               :childrenList="item.childrenList"
               :isVirtualDom="item.isVirtualDom"
               :result="item.result"
-              ref="reduce"
+              ref="recursion"
               @selectItem="selectItem"
-              @scrollToBottom="scrollToBottom"></reduce>
+              @scrollToBottom="scrollToBottom"></recursion>
     </div>
   </div>
 </template>
 
 <script>
-import Reduce from 'components/reduce/reduce'
+import Recursion from 'components/recursion/recursion'
 
 export default {
   data() {
@@ -41,7 +41,7 @@ export default {
   },
 
   methods: {
-    // reduce
+    // recursion
     // 存储 return 回来的多维数组
     selectItem(option) {
       this.options[option.number] = option.val
@@ -50,17 +50,17 @@ export default {
     // 超出可视区域，添加 padding-bottom
     scrollToBottom(childrenOffset) {
       // 获取 testQuest 的位置信息
-      let reduceCont = this.$refs.reduceCont
-      let rect = reduceCont.getBoundingClientRect()
+      let recursionCont = this.$refs.recursionCont
+      let rect = recursionCont.getBoundingClientRect()
       let offsetWidth = rect.top + rect.height
       // 获取差值
       let diff = childrenOffset - offsetWidth
       // testQuest 添加 paddingBottom 扩展内容区域
       if (diff > 0) {
-        reduceCont.style.paddingBottom = diff + 'px'
+        recursionCont.style.paddingBottom = diff + 'px'
         document.documentElement.scrollTop = childrenOffset
       } else {
-        reduceCont.style.paddingBottom = 0
+        recursionCont.style.paddingBottom = 0
       }
     },
 
@@ -75,9 +75,11 @@ export default {
       }
     }
   },
+
   components: {
-    Reduce
+    Recursion
   },
+
   mounted() {
     this._questionsLengthLessThanFour()
   }
@@ -85,8 +87,8 @@ export default {
 </script>
 
 <style lang='less' scoped>
-/* reduce */
-.reduce-container {
+/* recursion */
+.recursion-container {
   position: relative;
   display: flex;
   flex-wrap: wrap;

@@ -11,9 +11,9 @@ export default new Router({
       component: () => import('pages/index.vue')
     },
     {
-      path: '/reduce',
-      name: 'Reduce',
-      component: () => import('pages/reduce.vue')
+      path: '/recursion',
+      name: 'Recursion',
+      component: () => import('pages/recursion.vue')
     }
   ]
 })

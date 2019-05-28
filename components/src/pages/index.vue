@@ -1,6 +1,6 @@
 <template>
   <div>
-    <router-link to="/reduce">reduce</router-link>
+    <router-link to="/recursion">recursion</router-link>
   </div>
 </template>
 

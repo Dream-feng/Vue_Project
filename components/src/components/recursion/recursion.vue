@@ -47,27 +47,27 @@
 
     <!-- 递归组件 -->
     <div v-show="childrenList.length && unfoldStatus"
-         class="reduce-container">
-      <div class="reduce-wrap"
-           ref="reduceWrap">
-        <reduce v-for="(item, index) in childrenList"
+         class="recursion-container">
+      <div class="recursion-wrap"
+           ref="recursionWrap">
+        <recursion v-for="(item, index) in childrenList"
                 :key="index"
                 :number="formatChildrenNubmer(index)"
                 :childrenList="item.childrenList"
                 :isVirtualDom="item.isVirtualDom"
                 :result="item.result"
-                :isReduce="true"
-                ref="reduce"
+                :isRecursion="true"
+                ref="recursion"
                 @childrenSelectItem="childrenSelectItem"
-                @scrollToBottom="scrollToBottom"></reduce>
+                @scrollToBottom="scrollToBottom"></recursion>
         <!-- 箭头指引 -->
         <span class="arrow"
               ref="arrow">
           <span></span>
         </span>
-        <!-- 遮罩层 -->
-        <div class="mask"
-             @click="unfold"></div>
+        <!-- 遮罩层, 用于一层层关闭展开，废弃 -->
+        <!-- <div class="mask"
+             @click="unfold"></div> -->
       </div>
     </div>
   </div>
@@ -81,20 +81,20 @@ import { addClass, removeClass } from 'common/js/dom'
  * 1 => 第一次展开
  * 2 = > 第二次展开
  */
-const ReduceBgClrList = new Map([
+const RecursionBgClrList = new Map([
   [1, {
     title: '#55C4BD',
-    reduceBgClr: '#DCF7F5'
+    recursionBgClr: '#DCF7F5'
   }],
   [2, {
     title: '#628ADC',
-    reduceBgClr: '#C9D8F7'
+    recursionBgClr: '#C9D8F7'
   }],
   ['default', '#ffc540']
 ])
 
 export default {
-  name: 'reduce',
+  name: 'recursion',
   props: {
     number: {
       type: String,
@@ -106,7 +106,7 @@ export default {
         return []
       }
     },
-    isReduce: {
+    isRecursion: {
       type: Boolean,
       default: false
     },
@@ -131,7 +131,8 @@ export default {
       selectCorrectly: false,
       selectError: false,
       childrenListOptions: [], // 存储递归组件返回的 option
-      unfoldStatus: false // 是否展开小题
+      unfoldStatus: false, // 是否展开小题
+      isFirstUnfold: true
     }
   },
   methods: {
@@ -151,20 +152,29 @@ export default {
       this._emitUpComp(val)
     },
 
-    unfold() {
+    unfold(checkUnfold = true) {
+      // 先检测有没有展开的组件，如果有，则关闭
+      checkUnfold && this._closeSiblingUnfold()
       this.unfoldStatus = !this.unfoldStatus
-      // 展开小节的 title 样式
-      this.$refs.title.style.backgroundColor = this._getReduceBgClr()
-      // 递归组件的 reduce-wrap bgClr 样式
-      this.$refs.reduceWrap.style.backgroundColor = this._getReduceBgClr('reduceBgClr')
-      this._reduceWrapArrowPos()
 
-      // 将展开小节的 dom 的位置信息发给父组件
       this.$nextTick(() => {
-        let rect = this.$refs.reduceWrap.getBoundingClientRect()
-        let offsetWidth = rect.top + rect.height
-        this.scrollToBottom(offsetWidth)
-        // console.log(this.$refs.reduce)
+        // 第一次展开配置属性
+        if (this.isFirstUnfold) {
+          // 节流，避免多次运算
+          this.isFirstUnfold = false
+          // 递归组件的 recursion-wrap bgClr 样式
+          this.$refs.recursionWrap.style.backgroundColor = this._getRecursionBgClr('recursionBgClr')
+          this._recursionWrapArrowPos()
+        }
+        // 展开小节的 title 样式
+        this.$refs.title.style.backgroundColor = this._getRecursionBgClr()
+        // 将展开小节的 dom 的位置信息发给父组件
+        if (checkUnfold) {
+          // 节流，避免多次运算
+          let rect = this.$refs.recursionWrap.getBoundingClientRect()
+          let offsetWidth = rect.top + rect.height
+          this.scrollToBottom(offsetWidth)
+        }
       })
     },
 
@@ -175,7 +185,7 @@ export default {
 
     // 递归组件触发
     childrenSelectItem(childrenOption) {
-      if (!childrenOption.isReduce) {
+      if (!childrenOption.isRecursion) {
         return
       }
       this.childrenListOptions[childrenOption.number] = childrenOption.val
@@ -186,9 +196,26 @@ export default {
       return `${this.number}.${val + 1}`
     },
 
-    _reduceWrapArrowPos() {
+    _closeSiblingUnfold() {
+      // 先关闭 chidler 组件的展开状态
+      this.$children && this.$children.some(item => {
+        if (item.$data.unfoldStatus === true) {
+          item.unfold(false)
+          return true
+        }
+      })
+      // 关闭 sibling 组件的展开状态
+      this.$parent.$children.some(item => {
+        if (item.$props.number !== this.number && item.$data.unfoldStatus === true) {
+          item.unfold(false)
+          return true
+        }
+      })
+    },
+
+    _recursionWrapArrowPos() {
       // 修改箭头颜色
-      this.$refs.arrow.childNodes[0].style.backgroundColor = this._getReduceBgClr('reduceBgClr')
+      this.$refs.arrow.childNodes[0].style.backgroundColor = this._getRecursionBgClr('recursionBgClr')
       // 修改箭头位置
       let clientWidth = document.documentElement.clientWidth
       let domRect = this.$refs.container.getClientRects()[0]
@@ -216,11 +243,11 @@ export default {
       let option = {
         // 递归组件 number 为小数，提取小数后的数值
         number: this._getLastDecimalPointVal(this.number),
-        isReduce: this.isReduce,
+        isRecursion: this.isRecursion,
         val
       }
       // 若是递归组件，则返回递归上级，直到传递父组件
-      if (this.isReduce) {
+      if (this.isRecursion) {
         this.$emit('childrenSelectItem', option)
       } else {
         this.$emit('selectItem', option)
@@ -241,21 +268,21 @@ export default {
     },
 
     // 递归组件初始化 title 样式
-    _setReduceTitleBgClr() {
-      if (!this.isReduce) {
+    _setRecursionTitleBgClr() {
+      if (!this.isRecursion) {
         return
       }
-      this.$refs.title.style.backgroundColor = this._getReduceBgClr()
+      this.$refs.title.style.backgroundColor = this._getRecursionBgClr()
     },
 
-    _getReduceBgClr(type = 'title') {
+    _getRecursionBgClr(type = 'title') {
       // 获取是第几次递归的组件
       let index = this.number.toString().split('.').length
       // 展开小节状态，取下一个颜色
       if (!this.unfoldStatus) {
         index--
       }
-      let clr = index ? ReduceBgClrList.get(index)[type] : ReduceBgClrList.get('default')
+      let clr = index ? RecursionBgClrList.get(index)[type] : RecursionBgClrList.get('default')
       return clr
     },
 
@@ -273,7 +300,7 @@ export default {
 
   mounted() {
     this._childerLengthLessThanFour()
-    this._setReduceTitleBgClr()
+    this._setRecursionTitleBgClr()
   }
 }
 </script>
@@ -354,12 +381,12 @@ export default {
       }
     }
   }
-  .reduce-container {
+  .recursion-container {
     z-index: 1;
     position: absolute;
     left: 0;
     right: 0;
-    .reduce-wrap {
+    .recursion-wrap {
       display: inline-flex;
       flex-wrap: wrap;
       justify-content: space-around;
@@ -382,15 +409,16 @@ export default {
         transform: rotate(45deg);
       }
     }
-    .mask {
-      z-index: -1;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-    }
+    // 遮罩层, 用于一层层关闭展开，废弃
+    // .mask {
+    //   z-index: -1;
+    //   position: fixed;
+    //   top: 0;
+    //   left: 0;
+    //   right: 0;
+    //   bottom: 0;
+    //   background-color: rgba(0, 0, 0, 0.5);
+    // }
   }
 }
 </style>
